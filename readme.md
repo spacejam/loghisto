@@ -19,8 +19,8 @@ func benchmark() {
 }
 
 func main() {
-	numCPU := runtime.NumCPU()
-	runtime.GOMAXPROCS(numCPU)
+  numCPU := runtime.NumCPU()
+  runtime.GOMAXPROCS(numCPU)
 
   desiredConcurrency := uint(100)
   loghisto.PrintBenchmark("benchmark1234", desiredConcurrency, benchmark)
