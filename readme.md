@@ -1,6 +1,6 @@
 loghisto
 ============
-This library provides a high performance, counter and lossless accuracy histogram metric system.  It's good for collecting latency statistics in massive systems.  It doesn't throw away metrics like your standard reservoir sampling histogram metric libraries do, but instead uses a logarithmic bucketing algorithm to sacrifice a small amount of precision (generally less than 1%, but it's bad for numbers between 0 and 1).  This in turn allows you to drill into the 99.99th percentile, and you know it's within 1% of the true 99.99th percentile of the stream.  This is useful when examining your long-tail latency - something that you should not take lightly when running large scale distributed systems.
+A metric system for high performance counters and histograms.  Unlike popular metric systems today, this does not destroy the accuracy of histograms by sampling.  Instead, a logarithmic bucketing function compresses values, generally within 1% of their true value (although between 0 and 1 the precision loss may not be within this boundary).  This allows for extreme compression, which allows us to calculate arbitrarily high percentiles with no loss of accuracy - just a small amount of precision.  This is particularly useful for highly-clustered events that are tolerant of a small precision loss, but for which you REALLY care about what the tail looks like, such as measuring latency across a distributed system.
 
 Copied out of my work for the CockroachDB metrics system.  Based on an algorithm created by Keith Frost.
 
