@@ -89,6 +89,7 @@ func ExampleMetricSystem() {
 ### automatically sending your metrics to OpenTSDB, KairosDB or Graphite
 ```go
 func ExampleExternalSubmitter() {
+  includeGoProcessStats := true
   ms := NewMetricSystem(time.Minute, includeGoProcessStats)
   ms.Start()
   // graphite
