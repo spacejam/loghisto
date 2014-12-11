@@ -44,8 +44,9 @@ sys.Alloc:               839952
 sys.NumGC:               156
 sys.PauseTotalNs:        2.6633438e+07
 sys.NumGoroutine:        113
-```go
+```
 ### adding an embedded metric system to your code
+```go
 func ExampleMetricSystem() {
   // Create metric system that reports once a minute, and includes stats
   // about goroutines, memory usage and GC.
