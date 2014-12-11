@@ -84,18 +84,19 @@ func ExampleMetricSystem() {
 ### automatically sending your metrics to OpenTSDB, KairosDB or Graphite
 ```go
 func ExampleExternalSubmitter() {
-	ms := NewMetricSystem(time.Minute, includeGoProcessStats)
-	ms.Start()
+  ms := NewMetricSystem(time.Minute, includeGoProcessStats)
+  ms.Start()
   # graphite
-	s := NewSubmitter(ms, GraphiteProtocol, "tcp", "localhost:7777")
-	s.Start()
+  s := NewSubmitter(ms, GraphiteProtocol, "tcp", "localhost:7777")
+  s.Start()
 
   # opentsdb / kairosdb
-	s := NewSubmitter(ms, OpenTSDBProtocol, "tcp", "localhost:7777")
-	s.Start()
+  s := NewSubmitter(ms, OpenTSDBProtocol, "tcp", "localhost:7777")
+  s.Start()
 
   # to tear down:
-	s.Shutdown()
+  s.Shutdown()
+}
 ```
 
 See code for the Graphite/OpenTSDB protocols for adding your own output plugins, it's pretty simple.
