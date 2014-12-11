@@ -78,6 +78,9 @@ type proportionArray []proportion
 
 // MetricSystem facilitates the collection and distribution of metrics.
 type MetricSystem struct {
+  // percentiles is a mapping from labels to desired percentiles to be
+  // calculated by the MetricSystem
+  percentiles map[string]float64
 	// interval is the duration between collections and broadcasts of metrics
 	// to subscribers.
 	interval time.Duration
@@ -137,6 +140,17 @@ var Metrics = NewMetricSystem(60*time.Second, true)
 // metrics after each interval.
 func NewMetricSystem(interval time.Duration, sysStats bool) *MetricSystem {
 	ms := &MetricSystem{
+  percentiles: map[string]float64{
+      "%s_min":   0,
+      "%s_50":    .5,
+      "%s_75":    .75,
+      "%s_90":    .9,
+      "%s_95":    .95,
+      "%s_99":    .99,
+      "%s_99.9":  .999,
+      "%s_99.99": .9999,
+      "%s_max":   1,
+    },
 		interval:                        interval,
 		subscribeToRawMetrics:           make(chan chan *RawMetricSet, 64),
 		unsubscribeFromRawMetrics:       make(chan chan *RawMetricSet, 64),
@@ -176,6 +190,12 @@ func NewMetricSystem(interval time.Duration, sysStats bool) *MetricSystem {
 		ms.gaugeFuncsMu.Unlock()
 	}
 	return ms
+}
+
+// SpecifyPercentiles allows users to override the default collected
+// and reported percentiles.
+func (ms *MetricSystem) SpecifyPercentiles(percentiles map[string]float64) {
+  ms.percentiles = percentiles
 }
 
 // SubscribeToRawMetrics registers a channel to receive RawMetricSets
@@ -312,18 +332,7 @@ func decompress(compressedValue int16) float64 {
 func (ms *MetricSystem) processHistograms(name string,
 	valuesToCounts map[int16]*uint64) map[string]float64 {
 	output := make(map[string]float64)
-	labelToPercentile := map[string]float64{
-		"%s_min":   0,
-		"%s_50":    .5,
-		"%s_75":    .75,
-		"%s_90":    .9,
-		"%s_95":    .95,
-		"%s_99":    .99,
-		"%s_99.9":  .999,
-		"%s_99.99": .9999,
-		"%s_max":   1,
-	}
-	totalSum := float64(0)
+  totalSum := float64(0)
 	totalCount := uint64(0)
 	proportions := make([]proportion, 0, len(valuesToCounts))
 	for compressedValue, count := range valuesToCounts {
@@ -362,7 +371,7 @@ func (ms *MetricSystem) processHistograms(name string,
 	atomic.AddUint64(ms.histogramCountStore[countName], totalCount)
 	ms.histogramCountMu.RUnlock()
 
-	for label, p := range labelToPercentile {
+	for label, p := range ms.percentiles {
 		value, err := percentile(totalCount, proportions, p)
 		if err != nil {
 			glog.Errorf("unable to calculate percentile: %s", err)
