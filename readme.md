@@ -1,6 +1,7 @@
 loghisto
 ============
 This library provides a high performance, counter and lossless accuracy histogram metric system.  It's good for collecting latency statistics in massive systems.  It doesn't throw away metrics like your standard reservoir sampling histogram metric libraries do, but instead uses a logarithmic bucketing algorithm to sacrifice a small amount of precision (generally less than 1%, but it's bad for numbers between 0 and 1).  This in turn allows you to drill into the 99.99th percentile, and you know it's within 1% of the true 99.99th percentile of the stream.  This is useful when examining your long-tail latency - something that you should not take lightly when running large scale distributed systems.
+
 Copied out of my work for the CockroachDB metrics system.  Based on an algorithm created by Keith Frost.
 
 
@@ -81,7 +82,10 @@ func ExampleMetricSystem() {
 }
 ```
 ### automatically sending your metrics to OpenTSDB, KairosDB or Graphite
-```
+```go
+func ExampleExternalSubmitter() {
+	ms := NewMetricSystem(time.Minute, includeGoProcessStats)
+	ms.Start()
   # graphite
 	s := NewSubmitter(ms, GraphiteProtocol, "tcp", "localhost:7777")
 	s.Start()
@@ -93,3 +97,5 @@ func ExampleMetricSystem() {
   # to tear down:
 	s.Shutdown()
 ```
+
+See code for the Graphite/OpenTSDB protocols for adding your own output plugins, it's pretty simple.
