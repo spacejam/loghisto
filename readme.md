@@ -48,11 +48,16 @@ sys.NumGoroutine:        113
 ```
 ### adding an embedded metric system to your code
 ```go
+import (
+  "time"
+  "fmt"
+  "github.com/spacejam/loghisto"
+)
 func ExampleMetricSystem() {
   // Create metric system that reports once a minute, and includes stats
   // about goroutines, memory usage and GC.
   includeGoProcessStats := true
-  ms := NewMetricSystem(time.Minute, includeGoProcessStats)
+  ms := loghisto.NewMetricSystem(time.Minute, includeGoProcessStats)
   ms.Start()
 
   // create a channel that subscribes to metrics as they are produced once 
@@ -61,7 +66,7 @@ func ExampleMetricSystem() {
   // block, and  will FORGET about your channel if you fail to unblock the
   // channel after 3 configured intervals (in this case 3 minutes) rather
   // than causing a memory leak.
-  myMetricStream := make(chan *ProcessedMetricSet, 2)
+  myMetricStream := make(chan *loghisto.ProcessedMetricSet, 2)
   ms.SubscribeToProcessedMetrics(myMetricStream)
 
   // create some metrics
@@ -71,7 +76,7 @@ func ExampleMetricSystem() {
   timeToken.Stop()
 
   for m := range myMetricStream {
-    fmt.Printf("number of goroutines: %i\n", m["sys.NumGoroutine"])
+    fmt.Printf("number of goroutines: %f\n", m.Metrics["sys.NumGoroutine"])
   }
 
   // if you want to manually unsubscribe from the metric stream
@@ -86,15 +91,15 @@ func ExampleMetricSystem() {
 func ExampleExternalSubmitter() {
   ms := NewMetricSystem(time.Minute, includeGoProcessStats)
   ms.Start()
-  # graphite
+  // graphite
   s := NewSubmitter(ms, GraphiteProtocol, "tcp", "localhost:7777")
   s.Start()
 
-  # opentsdb / kairosdb
+  // opentsdb / kairosdb
   s := NewSubmitter(ms, OpenTSDBProtocol, "tcp", "localhost:7777")
   s.Start()
 
-  # to tear down:
+  // to tear down:
   s.Shutdown()
 }
 ```
