@@ -52,8 +52,8 @@ func ExampleMetricSystem() {
   // Create metric system that reports once a minute, and includes stats
   // about goroutines, memory usage and GC.
   includeGoProcessStats := true
-	ms := NewMetricSystem(time.Minute, includeGoProcessStats)
-	ms.Start()
+  ms := NewMetricSystem(time.Minute, includeGoProcessStats)
+  ms.Start()
 
   // create a channel that subscribes to metrics as they are produced once 
   // per minute.
@@ -61,21 +61,21 @@ func ExampleMetricSystem() {
   // block, and  will FORGET about your channel if you fail to unblock the
   // channel after 3 configured intervals (in this case 3 minutes) rather
   // than causing a memory leak.
-	myMetricStream := make(chan *ProcessedMetricSet, 2)
-	ms.SubscribeToProcessedMetrics(myMetricStream)
+  myMetricStream := make(chan *ProcessedMetricSet, 2)
+  ms.SubscribeToProcessedMetrics(myMetricStream)
 
   // create some metrics
-	timeToken := ms.StartTimer("time for creating a counter and histo")
-	ms.Counter("some event", 1)
-	ms.Histogram("some measured thing", 123)
-	timeToken.Stop()
+  timeToken := ms.StartTimer("time for creating a counter and histo")
+  ms.Counter("some event", 1)
+  ms.Histogram("some measured thing", 123)
+  timeToken.Stop()
 
   for m := range myMetricStream {
-		fmt.Printf("number of goroutines: %i\n", m["sys.NumGoroutine"])
-	}
+    fmt.Printf("number of goroutines: %i\n", m["sys.NumGoroutine"])
+  }
 
   // if you want to manually unsubscribe from the metric stream
-	ms.UnsubscribeFromProcessedMetrics(myMetricStream)
+  ms.UnsubscribeFromProcessedMetrics(myMetricStream)
 
   // to stop and clean up your metric system
   ms.Stop()
