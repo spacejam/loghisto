@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
 )
 
 type openTSDBStat struct {

@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
 )
 
 type requestable interface{}
@@ -43,6 +44,7 @@ type Submitter struct {
 	metricSystem       *MetricSystem
 	metricChan         chan *ProcessedMetricSet
 	shutdownChan       chan struct{}
+	persistentQueue    *BackendQueue
 }
 
 // NewSubmitter creates a Submitter that receives metrics off of a
@@ -67,40 +69,68 @@ func NewSubmitter(metricSystem *MetricSystem,
 	}
 }
 
+// UsePersistDir specifies that a filesystem queue should be used for
+// holding intermediate metrics.
+func (s *Submitter) UsePersistDir(dir string) {
+	dq := newDiskQueue("loghisto", dir, 1e7, 1e3, time.Second)
+	s.persistentQueue = &dq
+}
+
 func (s *Submitter) retryBacklog() error {
 	var request []byte
 	for {
-		s.backlogMu.Lock()
-		head := s.backlogHead
-		tail := s.backlogTail
-		if head != tail {
-			request = s.backlog[head]
-		}
-		s.backlogMu.Unlock()
+		if s.persistentQueue != nil {
+			select {
+			case request, ok := <-(*s.persistentQueue).ReadChan():
+				if !ok {
+					glog.Error("channel to persistent queue closed!")
+					s.Shutdown()
+				}
+				err := s.submit(request)
+				if err != nil {
+					(*s.persistentQueue).Put(request)
+					return err
+				}
+			case <-time.After(250 * time.Millisecond):
+				return nil
+			}
+		} else {
+			s.backlogMu.Lock()
+			head := s.backlogHead
+			tail := s.backlogTail
+			if head != tail {
+				request = s.backlog[head]
+			}
+			s.backlogMu.Unlock()
 
-		if head == tail {
-			return nil
-		}
+			if head == tail {
+				return nil
+			}
 
-		err := s.submit(request)
-		if err != nil {
-			return err
+			err := s.submit(request)
+			if err != nil {
+				return err
+			}
+			s.backlogMu.Lock()
+			s.backlogHead = (s.backlogHead + 1) % 60
+			s.backlogMu.Unlock()
 		}
-		s.backlogMu.Lock()
-		s.backlogHead = (s.backlogHead + 1) % 60
-		s.backlogMu.Unlock()
 	}
 }
 
 func (s *Submitter) appendToBacklog(request []byte) {
-	s.backlogMu.Lock()
-	s.backlog[s.backlogTail] = request
-	s.backlogTail = (s.backlogTail + 1) % 60
-	// if we've run into the head, evict it
-	if s.backlogHead == s.backlogTail {
-		s.backlogHead = (s.backlogHead + 1) % 60
+	if s.persistentQueue != nil {
+		(*s.persistentQueue).Put(request)
+	} else {
+		s.backlogMu.Lock()
+		s.backlog[s.backlogTail] = request
+		s.backlogTail = (s.backlogTail + 1) % 60
+		// if we've run into the head, evict it
+		if s.backlogHead == s.backlogTail {
+			s.backlogHead = (s.backlogHead + 1) % 60
+		}
+		s.backlogMu.Unlock()
 	}
-	s.backlogMu.Unlock()
 }
 
 func (s *Submitter) submit(request []byte) error {
@@ -137,6 +167,7 @@ func (s *Submitter) Start() {
 		for {
 			select {
 			case <-s.shutdownChan:
+				(*s.persistentQueue).Close()
 				return
 			default:
 				s.retryBacklog()
