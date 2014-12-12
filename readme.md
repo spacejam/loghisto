@@ -38,7 +38,7 @@ benchmark1234_95:        67.03348428941965
 benchmark1234_90:        65.68633104092515
 benchmark1234_75:        63.07152259993664
 benchmark1234_50:        58.739891704145194
-benchmark1234_min:       -657.5233632152207
+benchmark1234_min:       -657.5233632152207           // Corollary: time.Since(time.Now()) is often < 0
 benchmark1234_sum:       1.648051169322668e+09
 benchmark1234_avg:       81.70388809307748
 benchmark1234_agg_avg:   89
