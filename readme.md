@@ -28,22 +28,25 @@ func main() {
 ```
 results in something like this printed to stdout each second:
 ```
-2014-12-11 14:59:30 -0500 EST
-benchmark1234_count:     1.401589e+06
-benchmark1234_max:       646933.2852939675
-benchmark1234_99.99:     1001.2472422902518
+2014-12-11 21:41:45 -0500 EST
+benchmark1234_count:     2.0171025e+07
+benchmark1234_max:       2.4642914167480484e+07
+benchmark1234_99.99:     4913.768840299134
 benchmark1234_99.9:      1001.2472422902518
-benchmark1234_99:        1001.2472422902518
-benchmark1234_50:        61.177922934760794
-benchmark1234_min:       0
-benchmark1234_sum:       1.1099876067243168e+08
-benchmark1234_avg:       79.19494279166837
-benchmark1234_agg_avg:   79
-benchmark1234_agg_count: 1.401589e+06
-benchmark1234_agg_sum:   1.1099876e+08
-sys.Alloc:               839952
-sys.NumGC:               156
-sys.PauseTotalNs:        2.6633438e+07
+benchmark1234_99:        71.24044000732538
+benchmark1234_95:        67.03348428941965
+benchmark1234_90:        65.68633104092515
+benchmark1234_75:        63.07152259993664
+benchmark1234_50:        58.739891704145194
+benchmark1234_min:       -657.5233632152207
+benchmark1234_sum:       1.648051169322668e+09
+benchmark1234_avg:       81.70388809307748
+benchmark1234_agg_avg:   89
+benchmark1234_agg_count: 6.0962226e+07
+benchmark1234_agg_sum:   5.454779078e+09
+sys.Alloc:               1.132672e+06
+sys.NumGC:               5741
+sys.PauseTotalNs:        1.569390954e+09
 sys.NumGoroutine:        113
 ```
 ### adding an embedded metric system to your code
@@ -60,7 +63,7 @@ func ExampleMetricSystem() {
   ms := loghisto.NewMetricSystem(time.Minute, includeGoProcessStats)
   ms.Start()
 
-  // create a channel that subscribes to metrics as they are produced once 
+  // create a channel that subscribes to metrics as they are produced once
   // per minute.
   // NOTE: if you allow this channel to fill up, the metric system will NOT
   // block, and  will FORGET about your channel if you fail to unblock the
