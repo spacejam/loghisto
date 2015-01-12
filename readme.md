@@ -1,5 +1,7 @@
 loghisto
 ============
+[![Build Status](https://travis-ci.org/spacejam/loghisto.svg)](https://travis-ci.org/spacejam/loghisto)
+
 A metric system for high performance counters and histograms.  Unlike popular metric systems today, this does not destroy the accuracy of histograms by sampling.  Instead, a logarithmic bucketing function compresses values, generally within 1% of their true value (although between 0 and 1 the precision loss may not be within this boundary).  This allows for extreme compression, which allows us to calculate arbitrarily high percentiles with no loss of accuracy - just a small amount of precision.  This is particularly useful for highly-clustered events that are tolerant of a small precision loss, but for which you REALLY care about what the tail looks like, such as measuring latency across a distributed system.
 
 Copied out of my work for the CockroachDB metrics system.  Based on an algorithm created by Keith Frost.
