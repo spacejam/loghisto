@@ -59,8 +59,8 @@ type RawMetricSet struct {
 	Gauges     map[string]float64
 }
 
-// timerToken facilitates concurrent timings of durations of the same label.
-type timerToken struct {
+// TimerToken facilitates concurrent timings of durations of the same label.
+type TimerToken struct {
 	Name         string
 	Start        time.Time
 	MetricSystem *MetricSystem
@@ -227,8 +227,8 @@ func (ms *MetricSystem) UnsubscribeFromProcessedMetrics(
 
 // StartTimer begins a timer and returns a token which is required for halting
 // the timer.  This allows for concurrent timings under the same name.
-func (ms *MetricSystem) StartTimer(name string) timerToken {
-	return timerToken{
+func (ms *MetricSystem) StartTimer(name string) TimerToken {
+	return TimerToken{
 		Name:         name,
 		Start:        time.Now(),
 		MetricSystem: ms,
@@ -237,7 +237,7 @@ func (ms *MetricSystem) StartTimer(name string) timerToken {
 
 // Stop stops a timer given by StartTimer, submits a Histogram of its duration
 // in nanoseconds, and returns its duration in nanoseconds.
-func (tt *timerToken) Stop() time.Duration {
+func (tt *TimerToken) Stop() time.Duration {
 	duration := time.Since(tt.Start)
 	tt.MetricSystem.Histogram(tt.Name, float64(duration.Nanoseconds()))
 	return duration
