@@ -106,6 +106,8 @@ type MetricSystem struct {
 	// processedBadSubscribers tracks misbehaving subscribers who do not clear
 	// their subscription channels regularly.
 	processedBadSubscribers map[chan *ProcessedMetricSet]int
+	// subscribersMu controls access to subscription structures
+	subscribersMu sync.RWMutex
 	// counterStore maintains the total counts of counters.
 	counterStore   map[string]*uint64
 	counterStoreMu sync.RWMutex
@@ -583,19 +585,21 @@ func (ms *MetricSystem) reaper() {
 			// add aggregate mean
 			for name := range rawMetrics.Histograms {
 				ms.histogramCountMu.RLock()
-				aggCount, countPresent :=
+				aggCountPtr, countPresent :=
 					ms.histogramCountStore[fmt.Sprintf("%s_count", name)]
-				aggSum, sumPresent :=
+				aggCount := atomic.LoadUint64(aggCountPtr)
+				aggSumPtr, sumPresent :=
 					ms.histogramCountStore[fmt.Sprintf("%s_sum", name)]
+				aggSum := atomic.LoadUint64(aggSumPtr)
 				ms.histogramCountMu.RUnlock()
 
-				if countPresent && sumPresent && *aggCount > 0 {
+				if countPresent && sumPresent && aggCount > 0 {
 					processedMetrics.Metrics[fmt.Sprintf("%s_agg_avg", name)] =
-						float64(*aggSum / *aggCount)
+						float64(aggSum / aggCount)
 					processedMetrics.Metrics[fmt.Sprintf("%s_agg_count", name)] =
-						float64(*aggCount)
+						float64(aggCount)
 					processedMetrics.Metrics[fmt.Sprintf("%s_agg_sum", name)] =
-						float64(*aggSum)
+						float64(aggSum)
 				}
 			}
 
@@ -603,7 +607,9 @@ func (ms *MetricSystem) reaper() {
 			for subscriber := range ms.processedSubscribers {
 				select {
 				case subscriber <- processedMetrics:
+					ms.subscribersMu.Lock()
 					delete(ms.processedBadSubscribers, subscriber)
+					ms.subscribersMu.Unlock()
 				default:
 					ms.processedBadSubscribers[subscriber]++
 					glog.Error("a subscriber has allowed their channel to fill up. ",
@@ -611,7 +617,9 @@ func (ms *MetricSystem) reaper() {
 					if ms.processedBadSubscribers[subscriber] >= 2 {
 						glog.Error("this subscriber has caused dropped metrics at ",
 							"least 3 times in a row.  closing the channel.")
+						ms.subscribersMu.Lock()
 						delete(ms.processedSubscribers, subscriber)
+						ms.subscribersMu.Unlock()
 						close(subscriber)
 					}
 				}
