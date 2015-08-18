@@ -252,7 +252,10 @@ func (ms *MetricSystem) Counter(name string, amount uint64) {
 	ms.counterMu.RLock()
 	_, exists := ms.counterCache[name]
 	// perform lock promotion when we need more control
-	if !exists {
+	if exists {
+		atomic.AddUint64(ms.counterCache[name], amount)
+		ms.counterMu.RUnlock()
+	} else {
 		ms.counterMu.RUnlock()
 		ms.counterMu.Lock()
 		_, syncExists := ms.counterCache[name]
@@ -260,11 +263,9 @@ func (ms *MetricSystem) Counter(name string, amount uint64) {
 			var z uint64
 			ms.counterCache[name] = &z
 		}
+		atomic.AddUint64(ms.counterCache[name], amount)
 		ms.counterMu.Unlock()
-		ms.counterMu.RLock()
 	}
-	atomic.AddUint64(ms.counterCache[name], amount)
-	ms.counterMu.RUnlock()
 }
 
 // Histogram is used for generating rich metrics, such as percentiles, from
@@ -273,7 +274,10 @@ func (ms *MetricSystem) Histogram(name string, value float64) {
 	compressedValue := compress(value)
 	ms.histogramMu.RLock()
 	_, present := ms.histogramCache[name][compressedValue]
-	if !present {
+	if present {
+		atomic.AddUint64(ms.histogramCache[name][compressedValue], 1)
+		ms.histogramMu.RUnlock()
+	} else {
 		ms.histogramMu.RUnlock()
 		ms.histogramMu.Lock()
 		_, syncPresent := ms.histogramCache[name][compressedValue]
@@ -285,11 +289,9 @@ func (ms *MetricSystem) Histogram(name string, value float64) {
 			}
 			ms.histogramCache[name][compressedValue] = &z
 		}
+		atomic.AddUint64(ms.histogramCache[name][compressedValue], 1)
 		ms.histogramMu.Unlock()
-		ms.histogramMu.RLock()
 	}
-	atomic.AddUint64(ms.histogramCache[name][compressedValue], 1)
-	ms.histogramMu.RUnlock()
 }
 
 // RegisterGaugeFunc registers a function to be called at each interval
