@@ -506,6 +506,8 @@ func (ms *MetricSystem) processMetrics(
 }
 
 func (ms *MetricSystem) updateSubscribers() {
+	ms.subscribersMu.Lock()
+	defer ms.subscribersMu.Unlock()
 	for {
 		select {
 		case subscriber := <-ms.subscribeToRawMetrics:
@@ -606,12 +608,11 @@ func (ms *MetricSystem) reaper() {
 			}
 
 			// broadcast processed metrics
+			ms.subscribersMu.Lock()
 			for subscriber := range ms.processedSubscribers {
 				select {
 				case subscriber <- processedMetrics:
-					ms.subscribersMu.Lock()
 					delete(ms.processedBadSubscribers, subscriber)
-					ms.subscribersMu.Unlock()
 				default:
 					ms.processedBadSubscribers[subscriber]++
 					glog.Error("a subscriber has allowed their channel to fill up. ",
@@ -619,13 +620,12 @@ func (ms *MetricSystem) reaper() {
 					if ms.processedBadSubscribers[subscriber] >= 2 {
 						glog.Error("this subscriber has caused dropped metrics at ",
 							"least 3 times in a row.  closing the channel.")
-						ms.subscribersMu.Lock()
 						delete(ms.processedSubscribers, subscriber)
-						ms.subscribersMu.Unlock()
 						close(subscriber)
 					}
 				}
 			}
+			ms.subscribersMu.Unlock()
 		}
 		select {
 		case processChan <- sendProcessed:

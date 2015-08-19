@@ -202,20 +202,20 @@ func TestTimer(t *testing.T) {
 func TestRate(t *testing.T) {
 	metricSystem := NewMetricSystem(time.Microsecond, false)
 	metricSystem.Counter("rate1", 777)
-	time.Sleep(time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 	metrics := metricSystem.processMetrics(metricSystem.collectRawMetrics()).Metrics
 	if metrics["rate1_rate"] != 777 {
 		t.Error("count one value")
 	}
 	metricSystem.Counter("rate1", 1223)
-	time.Sleep(time.Microsecond)
+	time.Sleep(20 * time.Millisecond)
 	metrics = metricSystem.processMetrics(metricSystem.collectRawMetrics()).Metrics
 	if metrics["rate1_rate"] != 1223 {
 		t.Errorf("expected rate: 1223, actual: %f", metrics["rate1_rate"])
 	}
 	metricSystem.Counter("rate1", 1223)
 	metricSystem.Counter("rate1", 1223)
-	time.Sleep(time.Microsecond)
+	time.Sleep(20 * time.Millisecond)
 	metrics = metricSystem.processMetrics(metricSystem.collectRawMetrics()).Metrics
 	if metrics["rate1_rate"] != 2446 {
 		t.Errorf("expected rate: 2446, actual: %f", metrics["rate1_rate"])
@@ -225,13 +225,13 @@ func TestRate(t *testing.T) {
 func TestCounter(t *testing.T) {
 	metricSystem := NewMetricSystem(time.Microsecond, false)
 	metricSystem.Counter("counter1", 3290)
-	time.Sleep(time.Microsecond)
+	time.Sleep(20 * time.Millisecond)
 	metrics := metricSystem.processMetrics(metricSystem.collectRawMetrics()).Metrics
 	if metrics["counter1"] != 3290 {
 		t.Error("count one value", metrics)
 	}
 	metricSystem.Counter("counter1", 10000)
-	time.Sleep(time.Microsecond)
+	time.Sleep(20 * time.Millisecond)
 	metrics = metricSystem.processMetrics(metricSystem.collectRawMetrics()).Metrics
 	if metrics["counter1"] != 13290 {
 		t.Error("accumulate counts across broadcasts")
@@ -252,7 +252,7 @@ func TestUpdateSubscribers(t *testing.T) {
 	go func() {
 		select {
 		case <-rawMetricStream:
-		case <-time.After(2 * time.Millisecond):
+		case <-time.After(20 * time.Millisecond):
 			t.Error("received no raw metrics from the MetricSystem after 2 milliseconds.")
 		}
 		metricSystem.UnsubscribeFromRawMetrics(rawMetricStream)
@@ -260,14 +260,14 @@ func TestUpdateSubscribers(t *testing.T) {
 	go func() {
 		select {
 		case <-processedMetricStream:
-		case <-time.After(2 * time.Millisecond):
+		case <-time.After(20 * time.Millisecond):
 			t.Error("received no processed metrics from the MetricSystem after 2 milliseconds.")
 		}
 		metricSystem.UnsubscribeFromProcessedMetrics(processedMetricStream)
 	}()
 
 	metricSystem.Start()
-	time.Sleep(time.Microsecond)
+	time.Sleep(20 * time.Millisecond)
 
 	go func() {
 		select {
@@ -283,7 +283,7 @@ func TestUpdateSubscribers(t *testing.T) {
 		default:
 		}
 	}()
-	time.Sleep(time.Microsecond)
+	time.Sleep(20 * time.Millisecond)
 }
 
 func TestProcessedBroadcast(t *testing.T) {
@@ -310,7 +310,7 @@ func TestProcessedBroadcast(t *testing.T) {
 			t.Error("expected histogram1_count to be 3, instead was",
 				processedMetrics.Metrics["histogram1_count"])
 		}
-	case <-time.After(2 * time.Millisecond):
+	case <-time.After(20 * time.Millisecond):
 		t.Error("received no metrics from the MetricSystem after 2 milliseconds.")
 	}
 
@@ -337,7 +337,7 @@ func TestRawBroadcast(t *testing.T) {
 			t.Error("expected counter2 rate to be 121, instead was",
 				rawMetrics.Counters["counter2"])
 		}
-	case <-time.After(2 * time.Millisecond):
+	case <-time.After(20 * time.Millisecond):
 		t.Error("received no metrics from the MetricSystem after 2 milliseconds.")
 	}
 
@@ -353,7 +353,7 @@ func TestMetricSystemStop(t *testing.T) {
 	metricSystem.Start()
 	metricSystem.Stop()
 
-	time.Sleep(100 * time.Microsecond)
+	time.Sleep(20 * time.Millisecond)
 
 	endRoutines := runtime.NumGoroutine()
 	if startingRoutines < endRoutines {
