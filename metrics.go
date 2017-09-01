@@ -581,7 +581,7 @@ func (ms *MetricSystem) reaper() {
 		}
 
 		// Perform the rest in another goroutine since processing is not
-		// gauranteed to complete before the interval is up.
+		// guaranteed to complete before the interval is up.
 		sendProcessed := func() {
 			// this is potentially expensive if there is a massive number of metrics
 			processedMetrics := ms.processMetrics(rawMetrics)
